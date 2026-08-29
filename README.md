@@ -45,7 +45,7 @@ NODE_ENV=development
 npm run dev
 ```
 
-6. Visit `http://localhost:3000` and login with password: `password`
+6. Visit `http://localhost:8080` and login with password: `password`
 
 ## Changing the Password
 
@@ -69,14 +69,17 @@ Then update `ADMIN_PASSWORD_HASH` in your `.env` file.
    - `NODE_ENV=production`
 
 5. Set the domain to `simile.ca` in Railway settings
-6. Deploy!
+6. **IMPORTANT**: Go to Project Settings → GitHub → disable "Require approval for deployments" to enable automatic deployments
+7. Deploy!
+
+The app will now automatically deploy on every push to main.
 
 ## Environment Variables
 
 - `ANTHROPIC_API_KEY`: Your Anthropic API key
 - `JWT_SECRET`: Secret key for JWT token signing
 - `ADMIN_PASSWORD_HASH`: Bcrypt hash of the login password
-- `PORT`: Server port (default: 3000)
+- `PORT`: Server port (default: 8080)
 - `NODE_ENV`: Environment mode (development/production)
 
 ## Tech Stack
