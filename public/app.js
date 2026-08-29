@@ -1,4 +1,5 @@
 let isAuthenticated = false;
+let conversationHistory = [];
 
 function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'light';
@@ -64,6 +65,15 @@ async function handleLogin(e) {
   }
 }
 
+function loadConversationHistory() {
+  const saved = localStorage.getItem('conversationHistory');
+  return saved ? JSON.parse(saved) : [];
+}
+
+function saveConversationHistory() {
+  localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+}
+
 function renderChatScreen() {
   const app = document.getElementById('app');
   const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -75,6 +85,7 @@ function renderChatScreen() {
         <h1>✨ Cute Chat</h1>
         <div class="header-actions">
           <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">${themeIcon}</button>
+          <button class="clear-btn" onclick="clearHistory()" title="Clear conversation history">🗑️</button>
           <button class="logout-btn" onclick="handleLogout()">Logout</button>
         </div>
       </div>
@@ -86,11 +97,28 @@ function renderChatScreen() {
     </div>
   `;
 
+  conversationHistory = loadConversationHistory();
+  renderMessages();
+
   const messageInput = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
   messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage();
   });
+}
+
+function renderMessages() {
+  const chatMessages = document.getElementById('chatMessages');
+  chatMessages.innerHTML = '';
+
+  conversationHistory.forEach((msg) => {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${msg.role}`;
+    msgDiv.innerHTML = `<div class="message-bubble">${escapeHtml(msg.content)}</div>`;
+    chatMessages.appendChild(msgDiv);
+  });
+
+  chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 async function sendMessage() {
@@ -100,17 +128,14 @@ async function sendMessage() {
 
   if (!message) return;
 
-  const chatMessages = document.getElementById('chatMessages');
-
-  const userMsgDiv = document.createElement('div');
-  userMsgDiv.className = 'message user';
-  userMsgDiv.innerHTML = `<div class="message-bubble">${escapeHtml(message)}</div>`;
-  chatMessages.appendChild(userMsgDiv);
+  conversationHistory.push({ role: 'user', content: message });
+  saveConversationHistory();
+  renderMessages();
 
   messageInput.value = '';
   sendBtn.disabled = true;
 
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  const chatMessages = document.getElementById('chatMessages');
 
   const typingDiv = document.createElement('div');
   typingDiv.className = 'message assistant';
@@ -136,36 +161,42 @@ async function sendMessage() {
 
     if (response.ok) {
       const data = await response.json();
-      typingDiv.remove();
-
-      const assistantMsgDiv = document.createElement('div');
-      assistantMsgDiv.className = 'message assistant';
-      assistantMsgDiv.innerHTML = `<div class="message-bubble">${escapeHtml(data.response)}</div>`;
-      chatMessages.appendChild(assistantMsgDiv);
+      conversationHistory.push({ role: 'assistant', content: data.response });
+      saveConversationHistory();
     } else {
-      typingDiv.remove();
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'message assistant';
-      errorDiv.innerHTML = `<div class="message-bubble" style="color: #ef4444;">Oops! Something went wrong 😞</div>`;
-      chatMessages.appendChild(errorDiv);
+      conversationHistory.push({ role: 'assistant', content: 'Oops! Something went wrong 😞' });
+      saveConversationHistory();
     }
   } catch (error) {
     console.error(error);
-    typingDiv.remove();
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'message assistant';
-    errorDiv.innerHTML = `<div class="message-bubble" style="color: #ef4444;">Connection error 😞</div>`;
-    chatMessages.appendChild(errorDiv);
+    conversationHistory.push({ role: 'assistant', content: 'Connection error 😞' });
+    saveConversationHistory();
   } finally {
+    typingDiv.remove();
+    renderMessages();
     sendBtn.disabled = false;
-    chatMessages.scrollTop = chatMessages.scrollHeight;
     messageInput.focus();
+  }
+}
+
+async function clearHistory() {
+  if (!confirm('Clear all messages? This cannot be undone.')) return;
+  try {
+    await fetch('/api/clear-history', { method: 'POST' });
+    conversationHistory = [];
+    saveConversationHistory();
+    renderMessages();
+  } catch (error) {
+    console.error(error);
   }
 }
 
 async function handleLogout() {
   try {
+    await fetch('/api/clear-history', { method: 'POST' });
     await fetch('/api/logout', { method: 'POST' });
+    conversationHistory = [];
+    localStorage.removeItem('conversationHistory');
     isAuthenticated = false;
     renderLoginScreen();
   } catch (error) {

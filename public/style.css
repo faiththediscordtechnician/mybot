@@ -178,7 +178,8 @@ body {
   align-items: center;
 }
 
-.theme-toggle {
+.theme-toggle,
+.clear-btn {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
@@ -191,7 +192,8 @@ body {
   align-items: center;
 }
 
-.theme-toggle:hover {
+.theme-toggle:hover,
+.clear-btn:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 

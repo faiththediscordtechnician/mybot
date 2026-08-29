@@ -17,6 +17,8 @@ const client = new Anthropic({
   },
 });
 
+const conversationHistory = {};
+
 app.use(express.json());
 app.use(express.static('public'));
 app.use(cookieParser());
@@ -72,16 +74,21 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Message required' });
     }
 
+    const sessionId = 'default';
+    if (!conversationHistory[sessionId]) {
+      conversationHistory[sessionId] = [];
+    }
+
+    conversationHistory[sessionId].push({
+      role: 'user',
+      content: message,
+    });
+
     console.log('Sending message to Claude:', message);
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: message,
-        },
-      ],
+      messages: conversationHistory[sessionId],
     });
 
     console.log('Claude response:', JSON.stringify(response));
@@ -92,6 +99,11 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
     }
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    conversationHistory[sessionId].push({
+      role: 'assistant',
+      content: text,
+    });
+
     res.json({ response: text });
   } catch (error) {
     console.error('Chat error details:', {
@@ -102,6 +114,12 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
     });
     res.status(500).json({ error: 'Failed to get response from Claude' });
   }
+});
+
+app.post('/api/clear-history', authMiddleware, (req, res) => {
+  const sessionId = 'default';
+  conversationHistory[sessionId] = [];
+  res.json({ success: true });
 });
 
 app.listen(PORT, () => {
