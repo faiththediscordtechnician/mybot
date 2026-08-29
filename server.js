@@ -69,6 +69,7 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Message required' });
     }
 
+    console.log('Sending message to Claude:', message);
     const response = await client.messages.create({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1024,
@@ -80,10 +81,22 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
       ],
     });
 
+    console.log('Claude response:', JSON.stringify(response));
+
+    if (!response.content || !response.content[0]) {
+      console.error('Unexpected response format:', response);
+      return res.status(500).json({ error: 'Invalid response format from Claude' });
+    }
+
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
     res.json({ response: text });
   } catch (error) {
-    console.error('Chat error:', error);
+    console.error('Chat error details:', {
+      message: error.message,
+      status: error.status,
+      error: error.error,
+      stack: error.stack
+    });
     res.status(500).json({ error: 'Failed to get response from Claude' });
   }
 });
