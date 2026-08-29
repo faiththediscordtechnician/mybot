@@ -74,7 +74,7 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
 
     console.log('Sending message to Claude:', message);
     const response = await client.messages.create({
-      model: 'claude-opus-4-1-20250805',
+      model: 'claude-3-opus-20240229',
       max_tokens: 1024,
       messages: [
         {
