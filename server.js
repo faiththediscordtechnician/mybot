@@ -12,6 +12,9 @@ const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '$2b$10$N9qo8uLOi
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  defaultHeaders: {
+    'anthropic-workspace-id': 'wrkspc_01EYzx6r51wN7bazRxnvY1JR',
+  },
 });
 
 app.use(express.json());
