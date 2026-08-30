@@ -69,12 +69,12 @@ app.post('/api/logout', (req, res) => {
 
 app.post('/api/chat', authMiddleware, async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, conversationId, useSearch } = req.body;
     if (!message) {
       return res.status(400).json({ error: 'Message required' });
     }
 
-    const sessionId = 'default';
+    const sessionId = conversationId || 'default';
     if (!conversationHistory[sessionId]) {
       conversationHistory[sessionId] = [];
     }
@@ -85,9 +85,16 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
     });
 
     console.log('Sending message to Claude:', message);
+
+    let systemPrompt = 'You are a helpful, friendly assistant.';
+    if (useSearch) {
+      systemPrompt += ' You have access to current information and can reference recent events and up-to-date facts.';
+    }
+
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
+      system: systemPrompt,
       messages: conversationHistory[sessionId],
     });
 
@@ -117,8 +124,26 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/clear-history', authMiddleware, (req, res) => {
-  const sessionId = 'default';
+  const { conversationId } = req.body;
+  const sessionId = conversationId || 'default';
   conversationHistory[sessionId] = [];
+  res.json({ success: true });
+});
+
+app.get('/api/conversations', authMiddleware, (req, res) => {
+  const conversations = Object.keys(conversationHistory).map((id) => ({
+    id,
+    messageCount: conversationHistory[id].length,
+    preview: conversationHistory[id].length > 0
+      ? conversationHistory[id][0].content.substring(0, 50)
+      : 'New conversation',
+  }));
+  res.json({ conversations });
+});
+
+app.delete('/api/conversations/:id', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  delete conversationHistory[id];
   res.json({ success: true });
 });
 
