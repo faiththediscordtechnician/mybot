@@ -411,7 +411,7 @@ function renderMessages() {
           previewBtn.className = 'preview-btn';
           previewBtn.textContent = '👁️';
           previewBtn.title = 'Preview file';
-          previewBtn.onclick = () => toggleFilePreview(fileWrapper, file.content);
+          previewBtn.onclick = () => toggleFilePreview(fileWrapper, file.name, file.content);
           fileHeader.appendChild(previewBtn);
 
           fileWrapper.appendChild(fileHeader);
@@ -572,9 +572,135 @@ function downloadFile(filename, content) {
   URL.revokeObjectURL(url);
 }
 
-function toggleFilePreview(fileWrapper, content) {
+function getFileExtension(filename) {
+  return filename.split('.').pop().toLowerCase();
+}
+
+function getFileType(filename) {
+  const ext = getFileExtension(filename);
+  if (['pdf'].includes(ext)) return 'pdf';
+  if (['html', 'htm'].includes(ext)) return 'html';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'image';
+  if (['json', 'js', 'py', 'java', 'cpp', 'c', 'rb', 'go', 'rs', 'php', 'css', 'ts'].includes(ext)) return 'code';
+  if (['md', 'markdown'].includes(ext)) return 'markdown';
+  return 'text';
+}
+
+function renderFilePreview(filename, content) {
+  const fileType = getFileType(filename);
+  const previewDiv = document.createElement('div');
+  previewDiv.className = 'file-preview-content';
+
+  try {
+    switch (fileType) {
+      case 'pdf':
+        renderPdfPreview(previewDiv, content);
+        break;
+      case 'html':
+        renderHtmlPreview(previewDiv, content);
+        break;
+      case 'image':
+        renderImagePreview(previewDiv, content);
+        break;
+      case 'code':
+        renderCodePreview(previewDiv, content, getFileExtension(filename));
+        break;
+      case 'markdown':
+        renderMarkdownPreview(previewDiv, content);
+        break;
+      default:
+        renderTextPreview(previewDiv, content);
+    }
+  } catch (err) {
+    console.error('Preview error:', err);
+    previewDiv.innerHTML = '<p>Preview not available</p>';
+  }
+
+  return previewDiv;
+}
+
+function renderTextPreview(container, content) {
+  const pre = document.createElement('pre');
+  pre.textContent = content.substring(0, 500) + (content.length > 500 ? '\n... (truncated)' : '');
+  container.appendChild(pre);
+}
+
+function renderCodePreview(container, content, lang) {
+  const pre = document.createElement('pre');
+  const code = document.createElement('code');
+  code.className = `language-${lang}`;
+  code.textContent = content.substring(0, 1000) + (content.length > 1000 ? '\n... (truncated)' : '');
+  pre.appendChild(code);
+  container.appendChild(pre);
+
+  if (window.hljs) {
+    window.hljs.highlightElement(code);
+  }
+}
+
+function renderMarkdownPreview(container, content) {
+  const html = marked.parse(content.substring(0, 1000));
+  container.innerHTML = DOMPurify.sanitize(html);
+}
+
+function renderHtmlPreview(container, content) {
+  const iframe = document.createElement('iframe');
+  iframe.className = 'preview-iframe';
+  iframe.style.width = '100%';
+  iframe.style.height = '400px';
+  iframe.style.border = 'none';
+  iframe.style.borderRadius = '4px';
+
+  const blob = new Blob([content], { type: 'text/html' });
+  iframe.src = URL.createObjectURL(blob);
+  container.appendChild(iframe);
+}
+
+function renderImagePreview(container, content) {
+  const img = document.createElement('img');
+  img.src = content;
+  img.style.maxWidth = '100%';
+  img.style.maxHeight = '400px';
+  img.style.borderRadius = '4px';
+  container.appendChild(img);
+}
+
+async function renderPdfPreview(container, content) {
+  try {
+    const pdfData = atob(content.split(',')[1]);
+    const pdfArray = new Uint8Array(pdfData.length);
+    for (let i = 0; i < pdfData.length; i++) {
+      pdfArray[i] = pdfData.charCodeAt(i);
+    }
+
+    const pdf = await pdfjsLib.getDocument({ data: pdfArray }).promise;
+    const page = await pdf.getPage(1);
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const viewport = page.getViewport({ scale: 1.5 });
+
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    await page.render({ canvasContext: context, viewport }).promise;
+    container.appendChild(canvas);
+  } catch (err) {
+    const p = document.createElement('p');
+    p.textContent = 'PDF preview not available';
+    container.appendChild(p);
+  }
+}
+
+function toggleFilePreview(fileWrapper, filename, content) {
   const preview = fileWrapper.querySelector('.file-preview');
   const isVisible = preview.style.display !== 'none';
+
+  if (!isVisible && preview.children.length === 0) {
+    const previewContent = renderFilePreview(filename, content);
+    preview.appendChild(previewContent);
+  }
+
   preview.style.display = isVisible ? 'none' : 'block';
 }
 
