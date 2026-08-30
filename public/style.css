@@ -659,3 +659,85 @@ body {
   border-top: 1px solid var(--border);
   margin: 12px 0;
 }
+
+.files-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.file-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-header {
+  display: flex;
+  gap: 8px;
+}
+
+.file-download-btn {
+  flex: 1;
+  padding: 10px 15px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.3s;
+  text-align: left;
+}
+
+.file-download-btn:hover {
+  opacity: 0.9;
+}
+
+.message.assistant .file-download-btn {
+  background: #b8860b;
+}
+
+.preview-btn {
+  padding: 10px 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: opacity 0.3s;
+}
+
+.preview-btn:hover {
+  opacity: 0.9;
+}
+
+.message.assistant .preview-btn {
+  background: #b8860b;
+}
+
+.file-preview {
+  background: rgba(0, 0, 0, 0.05);
+  border-left: 3px solid var(--accent);
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.file-preview pre {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.message.assistant .file-preview {
+  background: rgba(0, 0, 0, 0.08);
+}

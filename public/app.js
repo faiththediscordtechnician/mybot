@@ -381,16 +381,62 @@ function renderMessages() {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${msg.role}`;
 
-    const bubble = document.createElement('div');
-    bubble.className = 'message-bubble';
-
     if (msg.role === 'assistant') {
-      bubble.innerHTML = renderMarkdown(msg.content);
+      const files = extractFiles(msg.content);
+      const cleanContent = removeFileMarkers(msg.content);
+
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.innerHTML = renderMarkdown(cleanContent);
+      msgDiv.appendChild(bubble);
+
+      if (files.length > 0) {
+        const filesDiv = document.createElement('div');
+        filesDiv.className = 'files-container';
+
+        files.forEach((file) => {
+          const fileWrapper = document.createElement('div');
+          fileWrapper.className = 'file-item';
+
+          const fileHeader = document.createElement('div');
+          fileHeader.className = 'file-header';
+
+          const fileBtn = document.createElement('button');
+          fileBtn.className = 'file-download-btn';
+          fileBtn.textContent = `📥 ${file.name}`;
+          fileBtn.onclick = () => downloadFile(file.name, file.content);
+          fileHeader.appendChild(fileBtn);
+
+          const previewBtn = document.createElement('button');
+          previewBtn.className = 'preview-btn';
+          previewBtn.textContent = '👁️';
+          previewBtn.title = 'Preview file';
+          previewBtn.onclick = () => toggleFilePreview(fileWrapper, file.content);
+          fileHeader.appendChild(previewBtn);
+
+          fileWrapper.appendChild(fileHeader);
+
+          const preview = document.createElement('div');
+          preview.className = 'file-preview';
+          preview.style.display = 'none';
+
+          const previewContent = document.createElement('pre');
+          previewContent.textContent = file.content.substring(0, 500) + (file.content.length > 500 ? '\n... (truncated)' : '');
+          preview.appendChild(previewContent);
+
+          fileWrapper.appendChild(preview);
+          filesDiv.appendChild(fileWrapper);
+        });
+
+        msgDiv.appendChild(filesDiv);
+      }
     } else {
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
       bubble.textContent = msg.content;
+      msgDiv.appendChild(bubble);
     }
 
-    msgDiv.appendChild(bubble);
     chatMessages.appendChild(msgDiv);
   });
 
@@ -490,9 +536,46 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function extractFiles(text) {
+  const filePattern = /```file:([^\n]+)\n([\s\S]*?)```/g;
+  const files = [];
+  let match;
+
+  while ((match = filePattern.exec(text)) !== null) {
+    files.push({
+      name: match[1],
+      content: match[2].trim(),
+    });
+  }
+
+  return files;
+}
+
+function removeFileMarkers(text) {
+  return text.replace(/```file:[^\n]+\n[\s\S]*?```/g, '').trim();
+}
+
 function renderMarkdown(text) {
   const markdown = marked.parse(text);
   return DOMPurify.sanitize(markdown);
+}
+
+function downloadFile(filename, content) {
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function toggleFilePreview(fileWrapper, content) {
+  const preview = fileWrapper.querySelector('.file-preview');
+  const isVisible = preview.style.display !== 'none';
+  preview.style.display = isVisible ? 'none' : 'block';
 }
 
 // Initial setup
