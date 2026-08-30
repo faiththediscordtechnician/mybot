@@ -114,7 +114,17 @@ function renderMessages() {
   conversationHistory.forEach((msg) => {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${msg.role}`;
-    msgDiv.innerHTML = `<div class="message-bubble">${escapeHtml(msg.content)}</div>`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+
+    if (msg.role === 'assistant') {
+      bubble.innerHTML = renderMarkdown(msg.content);
+    } else {
+      bubble.textContent = msg.content;
+    }
+
+    msgDiv.appendChild(bubble);
     chatMessages.appendChild(msgDiv);
   });
 
@@ -208,6 +218,11 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function renderMarkdown(text) {
+  const markdown = marked.parse(text);
+  return DOMPurify.sanitize(markdown);
 }
 
 // Initial setup
