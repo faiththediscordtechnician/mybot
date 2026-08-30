@@ -70,12 +70,21 @@ async function handleLogin(e) {
 }
 
 function loadConversationHistory() {
-  const saved = localStorage.getItem('conversationHistory');
+  const saved = localStorage.getItem(`conversation_${currentConversationId}`);
   return saved ? JSON.parse(saved) : [];
 }
 
 function saveConversationHistory() {
-  localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+  localStorage.setItem(`conversation_${currentConversationId}`, JSON.stringify(conversationHistory));
+}
+
+function loadConversationsList() {
+  const saved = localStorage.getItem('conversationsList');
+  return saved ? JSON.parse(saved) : ['default'];
+}
+
+function saveConversationsList(list) {
+  localStorage.setItem('conversationsList', JSON.stringify(list));
 }
 
 async function loadMemories() {
@@ -87,14 +96,18 @@ function saveMemories() {
   localStorage.setItem('userMemories', JSON.stringify(userMemories));
 }
 
-async function loadConversations() {
-  try {
-    const res = await fetch('/api/conversations');
-    const data = await res.json();
-    allConversations = data.conversations;
-  } catch (err) {
-    console.error('Failed to load conversations:', err);
-  }
+function loadConversations() {
+  const convIds = loadConversationsList();
+  allConversations = convIds.map((id) => {
+    const history = JSON.parse(localStorage.getItem(`conversation_${id}`) || '[]');
+    return {
+      id,
+      messageCount: history.length,
+      preview: history.length > 0
+        ? history[0].content.substring(0, 50)
+        : 'New conversation',
+    };
+  });
 }
 
 function renderChatScreen() {
@@ -324,12 +337,19 @@ function switchTab(tab) {
   document.getElementById(`${tab}Tab`).classList.add('active');
 }
 
-async function newConversation() {
+function newConversation() {
   currentConversationId = Date.now().toString();
   conversationHistory = [];
   saveConversationHistory();
-  renderMessages();
+
+  const convList = loadConversationsList();
+  if (!convList.includes(currentConversationId)) {
+    convList.unshift(currentConversationId);
+    saveConversationsList(convList);
+  }
+
   loadConversations();
+  renderMessages();
   renderConversationsList();
 }
 
@@ -352,21 +372,24 @@ function switchConversation(convId) {
   renderConversationsList();
 }
 
-async function deleteConversation(convId, event) {
+function deleteConversation(convId, event) {
   event.stopPropagation();
   if (!confirm('Delete this conversation?')) return;
 
-  try {
-    await fetch(`/api/conversations/${convId}`, { method: 'DELETE' });
-    if (convId === currentConversationId) {
-      currentConversationId = 'default';
-      conversationHistory = [];
-    }
-    await loadConversations();
-    renderConversationsList();
-  } catch (err) {
-    console.error('Failed to delete conversation:', err);
+  localStorage.removeItem(`conversation_${convId}`);
+
+  const convList = loadConversationsList();
+  const updated = convList.filter(id => id !== convId);
+  saveConversationsList(updated);
+
+  if (convId === currentConversationId) {
+    currentConversationId = 'default';
+    conversationHistory = [];
+    saveConversationHistory();
   }
+
+  loadConversations();
+  renderConversationsList();
 }
 
 function toggleSearch() {
