@@ -3,6 +3,7 @@ let conversationHistory = [];
 let currentConversationId = 'default';
 let useSearch = false;
 let allConversations = [];
+let userMemories = {};
 
 function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'light';
@@ -77,6 +78,15 @@ function saveConversationHistory() {
   localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
 }
 
+async function loadMemories() {
+  const saved = localStorage.getItem('userMemories');
+  return saved ? JSON.parse(saved) : {};
+}
+
+function saveMemories() {
+  localStorage.setItem('userMemories', JSON.stringify(userMemories));
+}
+
 async function loadConversations() {
   try {
     const res = await fetch('/api/conversations');
@@ -113,6 +123,7 @@ function renderChatScreen() {
           </div>
           <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('chat')">Chat</button>
+            <button class="tab-btn" onclick="switchTab('memories')">Memories</button>
             <button class="tab-btn" onclick="switchTab('instructions')">Instructions</button>
           </div>
           <div id="chatTab" class="tab-content active">
@@ -122,6 +133,17 @@ function renderChatScreen() {
               <button class="file-btn" onclick="document.getElementById('fileInput').click()" title="Upload file">📎</button>
               <input type="text" id="messageInput" placeholder="Type something cute..." autocomplete="off">
               <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+            </div>
+          </div>
+          <div id="memoriesTab" class="tab-content">
+            <div class="memories-content">
+              <h2>Your Memories</h2>
+              <div id="memoriesList" class="memories-list"></div>
+              <div class="memory-input-area">
+                <input type="text" id="memoryKey" placeholder="Memory name (e.g., favorite_color)" class="memory-input">
+                <textarea id="memoryValue" placeholder="Memory content..." class="memory-textarea"></textarea>
+                <button class="add-memory-btn" onclick="addMemory()">Add Memory</button>
+              </div>
             </div>
           </div>
           <div id="instructionsTab" class="tab-content">
@@ -139,9 +161,11 @@ function renderChatScreen() {
 
   loadConversations();
   conversationHistory = loadConversationHistory();
+  userMemories = loadMemories();
   renderMessages();
   renderConversationsList();
   loadInstructions();
+  renderMemories();
 
   const messageInput = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
@@ -373,6 +397,73 @@ function resetInstructions() {
   alert('Instructions reset to default!');
 }
 
+function extractMemories(text) {
+  const memoryPattern = /```memory:([^\n]+)\n([\s\S]*?)```/g;
+  const memories = [];
+  let match;
+
+  while ((match = memoryPattern.exec(text)) !== null) {
+    memories.push({
+      key: match[1].trim(),
+      content: match[2].trim(),
+    });
+  }
+
+  return memories;
+}
+
+function removeMemoryMarkers(text) {
+  return text.replace(/```memory:[^\n]+\n[\s\S]*?```/g, '').trim();
+}
+
+function renderMemories() {
+  const list = document.getElementById('memoriesList');
+  if (!list) return;
+
+  if (Object.keys(userMemories).length === 0) {
+    list.innerHTML = '<p class="empty-memories">No memories yet. Claude will create memories about you during conversations.</p>';
+    return;
+  }
+
+  list.innerHTML = Object.entries(userMemories).map(([key, value]) => `
+    <div class="memory-card">
+      <div class="memory-header">
+        <h3>${escapeHtml(key)}</h3>
+        <button class="delete-memory-btn" onclick="deleteMemory('${key}')">✕</button>
+      </div>
+      <p class="memory-content">${escapeHtml(value)}</p>
+      <small class="memory-timestamp">Added at ${new Date().toLocaleString()}</small>
+    </div>
+  `).join('');
+}
+
+function addMemory() {
+  const keyInput = document.getElementById('memoryKey');
+  const valueInput = document.getElementById('memoryValue');
+
+  const key = keyInput.value.trim();
+  const value = valueInput.value.trim();
+
+  if (!key || !value) {
+    alert('Please fill in both memory name and content');
+    return;
+  }
+
+  userMemories[key] = value;
+  saveMemories();
+  renderMemories();
+
+  keyInput.value = '';
+  valueInput.value = '';
+}
+
+function deleteMemory(key) {
+  if (!confirm(`Delete memory "${key}"?`)) return;
+  delete userMemories[key];
+  saveMemories();
+  renderMemories();
+}
+
 function renderMessages() {
   const chatMessages = document.getElementById('chatMessages');
   chatMessages.innerHTML = '';
@@ -383,7 +474,17 @@ function renderMessages() {
 
     if (msg.role === 'assistant') {
       const files = extractFiles(msg.content);
-      const cleanContent = removeFileMarkers(msg.content);
+      const memories = extractMemories(msg.content);
+      let cleanContent = removeFileMarkers(msg.content);
+      cleanContent = removeMemoryMarkers(cleanContent);
+
+      if (memories.length > 0) {
+        memories.forEach(m => {
+          userMemories[m.key] = m.content;
+        });
+        saveMemories();
+        renderMemories();
+      }
 
       const bubble = document.createElement('div');
       bubble.className = 'message-bubble';

@@ -513,6 +513,151 @@ body {
   background: var(--text-secondary);
 }
 
+.memories-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  height: 100%;
+}
+
+.memories-content h2 {
+  color: var(--accent);
+  margin: 0;
+  font-family: 'Caveat', cursive;
+  font-size: 1.8em;
+}
+
+.memories-list {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+  padding-right: 10px;
+}
+
+.empty-memories {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 20px;
+}
+
+.memory-card {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.memory-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(212, 165, 116, 0.2);
+}
+
+.memory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.memory-header h3 {
+  margin: 0;
+  color: var(--accent);
+  font-family: 'Caveat', cursive;
+  font-size: 1.3em;
+  flex: 1;
+  word-break: break-word;
+}
+
+.delete-memory-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 18px;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.delete-memory-btn:hover {
+  color: #ef4444;
+}
+
+.memory-content {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.memory-timestamp {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.memory-input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 15px;
+  border-top: 2px solid var(--border);
+}
+
+.memory-input {
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: 'Caveat', cursive;
+  font-size: 16px;
+}
+
+.memory-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.memory-textarea {
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: 'Caveat', cursive;
+  font-size: 16px;
+  resize: vertical;
+  min-height: 80px;
+  max-height: 200px;
+}
+
+.memory-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.add-memory-btn {
+  padding: 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.3s;
+}
+
+.add-memory-btn:hover {
+  opacity: 0.9;
+}
+
 .typing-indicator {
   display: flex;
   gap: 4px;
