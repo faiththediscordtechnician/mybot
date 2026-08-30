@@ -497,4 +497,19 @@ function renderMarkdown(text) {
 
 // Initial setup
 initTheme();
-renderLoginScreen();
+checkAuthAndRender();
+
+async function checkAuthAndRender() {
+  try {
+    const res = await fetch('/api/check-auth');
+    if (res.ok) {
+      isAuthenticated = true;
+      renderChatScreen();
+    } else {
+      renderLoginScreen();
+    }
+  } catch (err) {
+    console.error('Auth check failed:', err);
+    renderLoginScreen();
+  }
+}

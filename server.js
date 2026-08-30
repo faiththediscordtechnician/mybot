@@ -67,6 +67,19 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/api/check-auth', (req, res) => {
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ authenticated: false });
+  }
+  try {
+    jwt.verify(token, JWT_SECRET);
+    res.json({ authenticated: true });
+  } catch (err) {
+    res.status(401).json({ authenticated: false });
+  }
+});
+
 app.post('/api/chat', authMiddleware, async (req, res) => {
   try {
     const { message, conversationId, useSearch } = req.body;
